@@ -7,6 +7,7 @@ const session = require('express-session');
 const passport = require('passport');
 const { ObjectID } = require('mongodb');
 const LocalStrategy = require('passport-local');
+const bcrypt = require('bcrypt');
 
 const app = express();
 
@@ -49,6 +50,38 @@ myDB(async client => {
     req.logout();
     res.redirect("/");
   })
+
+
+  //register of a new user
+  app.route('/register')
+    .post((req, res, next) => {
+      myDatabase.findOne({ username: req.body.username }, (err, user) => {
+        if (err) { 
+          next(err); //if there is an error we call the NEXT builtin func with that error
+        } else if (user) {
+            res.redirect('/'); // if USER already exist, redirect to home page
+        } else {
+          let hash = bcrypt.hashSync(req.body.password, 12);
+          myDatabase.insertOne({
+            username: req.body.username,
+            password: hash
+          }, (err, doc) => {
+            if (err){
+              res.redirect('/')
+            } else {
+             next(null, doc.ops[0]); // The inserted document is held within the ops property of the doc
+            } 
+          })
+        }
+      })
+    },
+      passport.authenticate('local', { failureRedirect: '/' }),
+      (req, res, next) => {
+        res.redirect('/profile');
+      }
+    );
+
+    
   //handles all the pipelines that are not specified in the program, returning a "not found" message
   app.use((req, res, next) => {
     res.status(404)
@@ -62,7 +95,7 @@ myDB(async client => {
   })
   
   passport.deserializeUser((id, done) => {
-    myDatabase.findOne( { id: new ObjectID(id) }, (err, doc) => {
+    myDatabase.findOne( { _id: new ObjectID(id) }, (err, doc) => {
       done(null, doc);
     })
   })
@@ -73,7 +106,7 @@ myDB(async client => {
       console.log(`User ${username} attempted to log in.`);
       if (err) return done(err);
       if (!user) return done(null, false);
-      if (password !== user.password) return done(null, false);
+      if (!bcrypt.compareSync(password, user.password)) return done(null, false);
       return done(null, user);
     })
   }))
