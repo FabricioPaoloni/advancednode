@@ -2,6 +2,8 @@ const passport = require("passport");
 const bcrypt = require("bcrypt");
 const LocalStrategy = require('passport-local');
 const { ObjectID } = require("mongodb");
+const dotenv = require("dotenv");
+const GitHubStrategy = require("passport-github").Strategy;
 
 module.exports = function (app, myDatabase) {
     //serialize and deserialize for cookies encryption
@@ -25,5 +27,16 @@ module.exports = function (app, myDatabase) {
       return done(null, user);
     })
   }))
+
+  //passport"github strategy for login/registering a github user
+  passport.use(new GitHubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: "https://boilerplate-advancednode.fabriciopaoloni.repl.co/auth/github/callback"
+  }, (accessToken, refreshToken, profile, cb) => {
+    console.log(profile);
+    //database logic
+  }
+  ));
 
 }
