@@ -9,7 +9,7 @@ module.exports = function (app, myDatabase) {
   });
   //post method for login a user, if user exists and password is correct, redirects to /profile pipeline
   app.route('/login').post(passport.authenticate('local', { failureRedirect: '/' }), (req, res) => {
-    res.redirect('/profile');
+    res.redirect('/chat');
   })
   //render the profile view with the user's data IF the function ensureAuthenticated validates the operation (if the user is logged in) 
   app.route('/profile').get(ensureAuthenticated, (req, res) => {
@@ -51,10 +51,16 @@ module.exports = function (app, myDatabase) {
       }
     );
 
+    //chat route
+    app.route("/chat").get(ensureAuthenticated, (req, res) => {
+      res.render('chat', { user: req.user })
+    })
+
     //github OAuth routes
     app.route("/auth/github").get(passport.authenticate('github'));
     app.route("/auth/github/callback").get(passport.authenticate('github', { failureRedirect: "/" }), (req, res) => {
-      res.redirect("/profile");
+      req.session.user_id = req.user.id;
+      res.redirect("/chat");
     })
 
 

@@ -36,6 +36,32 @@ module.exports = function (app, myDatabase) {
   }, (accessToken, refreshToken, profile, cb) => {
     console.log(profile);
     //database logic
+    myDatabase.findOneAndUpdate(
+      { id: profile.id },
+      {
+        $setOnInsert: {
+          id: profile.id,
+          username: profile.username,
+          name: profile.displayName || "Desconocido",
+          photo: profile.photos[0].value || "No photo available",
+          email: Array.isArray(profile.emails)
+          ? profile.emails[0].value
+          : "No public email",
+          created_od: new Date(),
+          provider: profile.provider || "No info available"
+        },
+        $set: {
+          last_login: new Date()
+        },
+        $inc: {
+          login_count: 1
+        }
+      },
+      { upsert: true, new: true},
+      (err, doc) => {
+        return cb(null, doc.value);
+      }
+    )
   }
   ));
 
